@@ -20,6 +20,12 @@ function route($method, $urlList, $requestData) {
 
     $link = mysqli_connect("127.0.0.1", "backend", "password", "backend");
 
+    if (mysqli_connect_errno()) {
+        http_response_code(500);
+        echo "Failed to connect to database: " . mysqli_connect_error();
+        return;
+    }
+
     $email = $requestData->body->email;
 
     if (!validateEmail($email)) {
