@@ -29,4 +29,21 @@ if (!$link) {
     exit;
 }
 
+$url = isset($_GET['q']) ? $_GET['q'] : '';
+$url = rtrim($url, '/');
+$urlList = explode('/', $url);
+
+$router = $urlList[0];
+$requestData = getData(getMethod());
+$method = getMethod();
+
+if(file_exists(realpath(dirname(__FILE__)).'/routers/' . $router . '.php')) {
+    include_once 'routers/' . $router . '.php';
+    route($method, $urlList, $requestData);
+}
+else {
+    http_response_code(404);
+    echo "404 Not Found";
+}
+
 ?>
