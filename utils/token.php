@@ -37,9 +37,10 @@ function logout() {
     $result = mysqli_query($link, $sql);
 
     if (!$result) {
-        return "Error";
+        http_response_code(500);
+        echo "Internal Server Error";
     } else {
-        return "Successfully logged out";
+        echo "Successfully logged out";
     }
 }
 
