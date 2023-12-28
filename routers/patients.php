@@ -14,6 +14,7 @@ function route($method, $urlList, $requestData) {
     $onlyMyPatients = isset($_GET['onlyMyPatients']) ? $_GET['onlyMyPatients'] : false;
     $query = isset($_GET['query']) ? $_GET['query'] : null;
     $conclusion = isset($_GET['conclusion']) ? $_GET['conclusion'] : null;
+    $scheduledVisits = isset($_GET['scheduledVisits']) ? $_GET['scheduledVisits'] : false;
 
     switch ($sorting) {
         case 'NameAsc':
@@ -51,6 +52,10 @@ function route($method, $urlList, $requestData) {
 
     if ($conclusion) {
         $sql .= ($query || $onlyMyPatients ? " AND" : " WHERE") . " EXISTS (SELECT 1 FROM inspections WHERE patient_id = patients.id AND conclusion = '" . mysqli_real_escape_string($link, $conclusion) . "')";
+    }
+
+    if ($scheduledVisits) {
+        $sql .= ($query || $onlyMyPatients || $conclusion ? " AND" : " WHERE") . " EXISTS (SELECT 1 FROM inspections WHERE patient_id = patients.id AND next_visit_date > NOW())";
     }
 
     $sql .= " ORDER BY $orderBy LIMIT " . (($page - 1) * $pageSize) . ", " . $pageSize;
