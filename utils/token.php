@@ -8,7 +8,7 @@ function generateToken($link, $user) {
     $sql = "INSERT INTO tokens (value, user_id, valid_until) VALUES ('" . mysqli_real_escape_string($link, $token) . "', " . intval($userID) . ", '" . $validUntil . "')";
     $tokenInsertResult = mysqli_query($link, $sql);
 
-    return $tokenInsertResult;
+    return $token;
 }
 
 
