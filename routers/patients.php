@@ -6,6 +6,7 @@ function route($method, $urlList, $requestData) {
     $page = $_GET['page'] ?? 1;
     $pageSize = $_GET['pageSize'] ?? 5;
     $sorting = $_GET['sorting'] ?? 'NameAsc';
+    $query = isset($_GET['query']) ? $_GET['query'] : null;
 
     switch ($sorting) {
         case 'NameAsc':
@@ -24,8 +25,14 @@ function route($method, $urlList, $requestData) {
             $orderBy = "name ASC";
     }
 
-    $sql = "SELECT * FROM patients ORDER BY $orderBy LIMIT " . (($page - 1) * $pageSize) . ", " . $pageSize;
+    $sql = "SELECT * FROM patients";
 
+    if ($query) {
+        $sql .= " WHERE name LIKE '%" . mysqli_real_escape_string($link, $query) . "%'";
+    }
+    
+    $sql .= " ORDER BY $orderBy LIMIT " . (($page - 1) * $pageSize) . ", " . $pageSize;
+    
     $result = mysqli_query($link, $sql);
     $patients = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
