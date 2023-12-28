@@ -27,6 +27,12 @@ function route($method, $urlList, $requestData) {
         case 'CreateDesc':
             $orderBy = "create_time DESC";
             break;
+        case 'InspectionAsc':
+            $orderBy = "(SELECT MAX(date) FROM inspections WHERE patient_id = patients.id) ASC";
+            break;
+        case 'InspectionDesc':
+            $orderBy = "(SELECT MAX(date) FROM inspections WHERE patient_id = patients.id) DESC";
+            break;
         default:
             $orderBy = "name ASC";
     }
@@ -41,9 +47,9 @@ function route($method, $urlList, $requestData) {
         $userId = checkToken();
         $sql .= ($query ? " AND" : " WHERE") . " EXISTS (SELECT 1 FROM inspections WHERE patient_id = patients.id AND doctor_id = " . intval($userId) . ")";
     }
-    
+
     $sql .= " ORDER BY $orderBy LIMIT " . (($page - 1) * $pageSize) . ", " . $pageSize;
-    
+
     $result = mysqli_query($link, $sql);
     $patients = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
