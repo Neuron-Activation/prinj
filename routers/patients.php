@@ -13,6 +13,7 @@ function route($method, $urlList, $requestData) {
     $sorting = $_GET['sorting'] ?? 'NameAsc';
     $onlyMyPatients = isset($_GET['onlyMyPatients']) ? $_GET['onlyMyPatients'] : false;
     $query = isset($_GET['query']) ? $_GET['query'] : null;
+    $conclusion = isset($_GET['conclusion']) ? $_GET['conclusion'] : null;
 
     switch ($sorting) {
         case 'NameAsc':
@@ -46,6 +47,10 @@ function route($method, $urlList, $requestData) {
     if ($onlyMyPatients) {
         $userId = checkToken();
         $sql .= ($query ? " AND" : " WHERE") . " EXISTS (SELECT 1 FROM inspections WHERE patient_id = patients.id AND doctor_id = " . intval($userId) . ")";
+    }
+
+    if ($conclusion) {
+        $sql .= ($query || $onlyMyPatients ? " AND" : " WHERE") . " EXISTS (SELECT 1 FROM inspections WHERE patient_id = patients.id AND conclusion = '" . mysqli_real_escape_string($link, $conclusion) . "')";
     }
 
     $sql .= " ORDER BY $orderBy LIMIT " . (($page - 1) * $pageSize) . ", " . $pageSize;
