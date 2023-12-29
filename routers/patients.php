@@ -6,7 +6,31 @@ include_once 'utils/token.php';
 function route($method, $urlList, $requestData) {
     $link = mysqli_connect("127.0.0.1", "backend", "password", "backend");
 
+    if (mysqli_connect_errno()) {
+        http_response_code(500);
+        echo "Failed to connect to database: " . mysqli_connect_error();
+        return;
+    }
+
     $userId = checkToken();
+
+    if (is_null($userId)) {
+        http_response_code(401);
+        echo "Unauthorized: Access denied.";
+        return;
+    }
+
+    if ($method !== "GET") {
+        http_response_code(405);
+        echo "Method Not Allowed";
+        return;
+    }
+
+    if (count($urlList) > 1) {
+        http_response_code(404);
+        echo "Page Not Found";
+        return;
+    }
 
     $page = $_GET['page'] ?? 1;
     $pageSize = $_GET['pageSize'] ?? 5;

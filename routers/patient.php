@@ -2,6 +2,12 @@
 
 $link = mysqli_connect("127.0.0.1", "backend", "password", "backend");
 
+if (mysqli_connect_errno()) {
+    http_response_code(500);
+    echo "Failed to connect to database: " . mysqli_connect_error();
+    return;
+}
+
 include_once 'utils/token.php';
 
 
@@ -12,6 +18,8 @@ function createPatient($name, $dateOfBirth, $gender) {
         http_response_code(500);
         echo "Internal Server Error";
         return;
+    } else {
+        echo "Patient Succesfully created.";
     }
 }
 
@@ -19,7 +27,23 @@ function createPatient($name, $dateOfBirth, $gender) {
 function getPatientCard($patientId) {
     global $link;
 
-    $patient = $link->query("SELECT * from patients where id = '$patientId'")->fetch_assoc();
+    $patientId = $link->real_escape_string($patientId);
+    $result = $link->query("SELECT * from patients where id = '$patientId'");
+
+    if ($link->error) {
+        http_response_code(500);
+        echo "Internal Server Error";
+        return;
+    }
+
+    $patient = $result->fetch_assoc();
+
+    if (!$patient) {
+        http_response_code(404);
+        echo "Patient not found";
+        return;
+    }
+
     echo json_encode($patient);
 }
 
@@ -47,6 +71,13 @@ function getPatientInspections($patientId, $page, $pageSize, $sorting, $icdRoots
     $sql .= " ORDER BY $orderBy";
 
     $result = mysqli_query($link, $sql);
+
+    if (!$result) {
+        http_response_code(500);
+        echo "Internal Server Error";
+        return;
+    }
+
     $inspections = mysqli_fetch_all($result, MYSQLI_ASSOC);
 
     foreach ($inspections as $key => &$inspection) {
@@ -85,6 +116,18 @@ function route($method, $urlList, $requestData) {
 
     $userId = checkToken();
 
+    if (is_null($userId)) {
+        http_response_code(401);
+        echo "Unauthorized: Access denied.";
+        return;
+    }
+
+    if ($method !== "POST" && $method !== "GET") {
+        http_response_code(405);
+        echo "Method Not Allowed";
+        return;
+    }
+
     if ($method === 'POST') {
         createPatient($requestData->body->name, $requestData->body->date_of_birth, $requestData->body->gender);
         return;
@@ -95,7 +138,7 @@ function route($method, $urlList, $requestData) {
         return;
     }
 
-    if ($method === 'GET' && count($urlList) === 3) {
+    if ($method === 'GET' && count($urlList) === 3 && $urlList[2] === "inspections") {
         $page = $_GET['page'] ?? 1;
         $pageSize = $_GET['pageSize'] ?? 5;
         $sorting = $_GET['sorting'] ?? 'DateDesc';
@@ -103,6 +146,10 @@ function route($method, $urlList, $requestData) {
         $grouped = isset($_GET['grouped']) ? $_GET['grouped'] : false;
 
         getPatientInspections($urlList[1], $page, $pageSize, $sorting, $icdRoots, $grouped);
+        return;
+    } else {
+        http_response_code(401);
+        echo "Page Not Found";
         return;
     }
 }
