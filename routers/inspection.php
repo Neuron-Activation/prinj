@@ -28,6 +28,22 @@ function createInspection($date, $anamnesis, $complaints, $treatment, $conclusio
 }
 
 
+function getInspection($inspectionId) {
+    global $link;
+
+    $result = $link->query("SELECT * from inspections where id = '$inspectionId'");
+
+    $inspection = $result->fetch_assoc();
+
+    if (!$inspection) {
+        http_response_code(404);
+        echo "Patient not found";
+        return;
+    }
+
+    echo json_encode($inspection);
+}
+
 
 function route($method, $urlList, $requestData) {
 
@@ -48,6 +64,11 @@ function route($method, $urlList, $requestData) {
         $diagnoses = $requestData->body->diagnoses;
 
         createInspection($date, $anamnesis, $complaints, $treatment, $conclusion, $nextVisitDate, $deathDate, $baseInspectionId, $previousInspectionId, $patientId, $consultationId, $diagnoses, $userId);
+        return;
+    }
+
+    if ($method === 'GET' && count($urlList) === 2) {
+        getInspection($urlList[1]);
         return;
     }
 }
