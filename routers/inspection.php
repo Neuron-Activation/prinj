@@ -14,7 +14,13 @@ include_once 'utils/token.php';
 function createInspection($date, $anamnesis, $complaints, $treatment, $conclusion, $nextVisitDate, $deathDate, $baseInspectionId, $previousInspectionId, $patientId, $consultationId, $diagnoses, $doctorId) {
     global $link;
     $sql = "INSERT INTO inspections(date, anamnesis, complaints, treatment, conclusion, next_visit_date, death_date, base_inspection_id, previous_inspection_id, patient_id, consultation_id, doctor_id, create_time) VALUES('$date', '$anamnesis', '$complaints', '$treatment', '$conclusion', '$nextVisitDate', '$deathDate', '$baseInspectionId', '$previousInspectionId', '$patientId', '$consultationId', '$doctorId', CURRENT_TIMESTAMP)";
-    $link->query($sql);
+
+    if (!$link->query($sql)) {
+        http_response_code(500);
+        echo "Internal Server Error";
+        return;
+    }
+
 
     $inspection_id = $link->insert_id;
 
@@ -31,6 +37,8 @@ function createInspection($date, $anamnesis, $complaints, $treatment, $conclusio
             return;
         }
     }
+
+    echo "Inspection created successfully.";
 }
 
 
@@ -39,11 +47,17 @@ function getInspection($inspectionId) {
 
     $result = $link->query("SELECT * from inspections where id = '$inspectionId'");
 
+    if (!$result) {
+        http_response_code(500);
+        echo "Internal Server Error";
+        return;
+    }
+
     $inspection = $result->fetch_assoc();
 
     if (!$inspection) {
         http_response_code(404);
-        echo "Patient not found";
+        echo "Inspection not found";
         return;
     }
 
@@ -55,8 +69,18 @@ function updateInspection($anamnesis, $complaints, $treatment, $conclusion, $nex
     global $link;
 
     $sql = "UPDATE inspections SET anamnesis = '$anamnesis', complaints = '$complaints', treatment = '$treatment', conclusion = '$conclusion', next_visit_date = '$nextVisitDate', death_date = '$deathDate' WHERE id = '$inspectionId'";
+    if (!$link->query($sql)) {
+        http_response_code(500);
+        echo "Internal Server Error";
+        return;
+    }
 
     $sql = "DELETE FROM inspections_diagnoses WHERE inspection_id = '$inspectionId'";
+    if (!$link->query($sql)) {
+        http_response_code(500);
+        echo "Internal Server Error";
+        return;
+    }
 
     if (is_string($diagnoses)) {
         $diagnoses = array($diagnoses);
@@ -64,19 +88,40 @@ function updateInspection($anamnesis, $complaints, $treatment, $conclusion, $nex
 
     foreach ($diagnoses as $code) {
         $sql = "INSERT INTO inspections_diagnoses(inspection_id, diagnosis_code) VALUES('$inspectionId', '$code')";
+        if (!$link->query($sql)) {
+            http_response_code(500);
+            echo "Internal Server Error";
+            return;
+        }
     }
+
+    echo "Inspection updated successfully.";
 }
 
 
 function getInspectionChain($baseInspectionId) {
     global $link;
-    
+
     $sql = "SELECT * FROM inspections WHERE base_inspection_id = " . intval($baseInspectionId) . " ORDER BY date DESC LIMIT 1";
     $result = mysqli_query($link, $sql);
+
+    if (!$result) {
+        http_response_code(500);
+        echo "Internal Server Error";
+        return;
+    }
+
     $latestInspection = mysqli_fetch_assoc($result);
+
+    if (!$latestInspection) {
+        http_response_code(404);
+        echo "Root inspection not found";
+        return;
+    }
 
     $inspections = array($latestInspection);
     $previousInspectionId = $latestInspection['previous_inspection_id'];
+
     while ($previousInspectionId != null) {
         $sql = "SELECT * FROM inspections WHERE id = " . intval($previousInspectionId);
         $result = mysqli_query($link, $sql);
@@ -96,7 +141,19 @@ function getInspectionChain($baseInspectionId) {
 
 function route($method, $urlList, $requestData) {
 
-    $userId = checkToken();
+     $userId = checkToken();
+
+    if (is_null($userId)) {
+        http_response_code(401);
+        echo "Unauthorized: Access denied.";
+        return;
+    }
+
+    if ($method !== "POST" && $method !== "GET" && $method !== "PUT") {
+        http_response_code(405);
+        echo "Method Not Allowed";
+        return;
+    }
 
     if ($method === 'POST' && count($urlList) === 2 && $urlList[1] === "create") {
         $date = $requestData->body->date;
