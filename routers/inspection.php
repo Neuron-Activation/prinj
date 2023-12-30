@@ -45,6 +45,23 @@ function getInspection($inspectionId) {
 }
 
 
+function updateInspection($anamnesis, $complaints, $treatment, $conclusion, $nextVisitDate, $deathDate, $diagnoses, $inspectionId) {
+    global $link;
+
+    $sql = "UPDATE inspections SET anamnesis = '$anamnesis', complaints = '$complaints', treatment = '$treatment', conclusion = '$conclusion', next_visit_date = '$nextVisitDate', death_date = '$deathDate' WHERE id = '$inspectionId'";
+
+    $sql = "DELETE FROM inspections_diagnoses WHERE inspection_id = '$inspectionId'";
+
+    if (is_string($diagnoses)) {
+        $diagnoses = array($diagnoses);
+    }
+
+    foreach ($diagnoses as $code) {
+        $sql = "INSERT INTO inspections_diagnoses(inspection_id, diagnosis_code) VALUES('$inspectionId', '$code')";
+    }
+}
+
+
 function route($method, $urlList, $requestData) {
 
     $userId = checkToken();
@@ -69,6 +86,19 @@ function route($method, $urlList, $requestData) {
 
     if ($method === 'GET' && count($urlList) === 2) {
         getInspection($urlList[1]);
+        return;
+    }
+
+    if ($method === 'PUT' && count($urlList) === 2) {
+        $anamnesis = $requestData->body->anamnesis;
+        $complaints = $requestData->body->complaints;
+        $treatment = $requestData->body->treatment;
+        $conclusion = $requestData->body->conclusion;
+        $nextVisitDate = $requestData->body->nextVisitDate ?? null;
+        $deathDate = $requestData->body->deathDate ?? null;
+        $diagnoses = $requestData->body->diagnoses;
+
+        updateInspection($anamnesis, $complaints, $treatment, $conclusion, $nextVisitDate, $deathDate, $diagnoses, $urlList[1]);
         return;
     }
 }
